@@ -1,5 +1,4 @@
-CREATE DATABASE IF NOT EXISTS poll_system;
-USE poll_system;
+-- Select the target database before importing this file.
 
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,

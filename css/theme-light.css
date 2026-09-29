@@ -1,0 +1,13 @@
+:root {
+    --bg-primary: #f8f9fa;
+    --bg-card: #ffffff;
+    --text-primary: #212529;
+    --text-secondary: #6c757d;
+    --border-color: #dee2e6;
+    --accent-color: #6f42c1;
+    --accent-light: rgba(111, 66, 193, 0.12);
+    --badge-bg: #f1eef8;
+    --option-hover-bg: #f8f6fc;
+    --shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+}
+

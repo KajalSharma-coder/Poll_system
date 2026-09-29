@@ -2,23 +2,16 @@
 require_once '../../php/config.php';
 requireAdmin();
 
-header('Content-Type: application/json');
-
 $data = json_decode(file_get_contents('php://input'), true);
-$pollId = $data['poll_id'] ?? null;
-
+$pollId = (int)($data['poll_id'] ?? 0);
 if (!$pollId) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Poll ID is required']);
-    exit;
+    jsonResponse(['success' => false, 'error' => 'Poll ID is required'], 400);
 }
 
-try {
-    $stmt = $pdo->prepare("DELETE FROM polls WHERE id = ?");
-    $stmt->execute([$pollId]);
+$polls = array_values(array_filter(readJsonData('polls.json'), static fn(array $poll): bool => (int)$poll['id'] !== $pollId));
+$votes = array_values(array_filter(readJsonData('votes.json'), static fn(array $vote): bool => (int)$vote['poll_id'] !== $pollId));
+writeJsonData('polls.json', $polls);
+writeJsonData('votes.json', $votes);
 
-    echo json_encode(['success' => true]);
-} catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
-}
+jsonResponse(['success' => true]);
+

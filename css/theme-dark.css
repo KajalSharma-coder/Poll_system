@@ -1,0 +1,13 @@
+[data-theme="dark"] {
+    --bg-primary: #16181d;
+    --bg-card: #21242b;
+    --text-primary: #f1f3f5;
+    --text-secondary: #adb5bd;
+    --border-color: #343a40;
+    --accent-color: #a98eda;
+    --accent-light: rgba(169, 142, 218, 0.18);
+    --badge-bg: #2b2635;
+    --option-hover-bg: #2a2d35;
+    --shadow: 0 4px 18px rgba(0, 0, 0, 0.28);
+}
+

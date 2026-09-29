@@ -2,23 +2,21 @@
 require_once '../../php/config.php';
 requireAdmin();
 
-header('Content-Type: application/json');
-
 $data = json_decode(file_get_contents('php://input'), true);
-$optionId = $data['option_id'] ?? null;
-
+$optionId = (int)($data['option_id'] ?? 0);
 if (!$optionId) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'option_id is required']);
-    exit;
+    jsonResponse(['success' => false, 'error' => 'option_id is required'], 400);
 }
 
-try {
-    $stmt = $pdo->prepare("DELETE FROM poll_options WHERE id = ?");
-    $stmt->execute([$optionId]);
-
-    echo json_encode(['success' => true]);
-} catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+$polls = readJsonData('polls.json');
+foreach ($polls as &$poll) {
+    $poll['options'] = array_values(array_filter($poll['options'] ?? [], static fn(array $option): bool => (int)$option['id'] !== $optionId));
 }
+unset($poll);
+writeJsonData('polls.json', $polls);
+
+$votes = array_values(array_filter(readJsonData('votes.json'), static fn(array $vote): bool => (int)$vote['option_id'] !== $optionId));
+writeJsonData('votes.json', $votes);
+
+jsonResponse(['success' => true]);
+

@@ -1,12 +1,8 @@
 <?php
 require_once 'config.php';
 
-header('Content-Type: application/json');
-
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['success' => false, 'error' => 'Method not allowed']);
-    exit;
+    jsonResponse(['success' => false, 'error' => 'Method not allowed'], 405);
 }
 
 $input = json_decode(file_get_contents('php://input'), true);
@@ -14,19 +10,19 @@ $username = trim($input['username'] ?? '');
 $password = $input['password'] ?? '';
 
 if (!$username || !$password) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Username and password are required']);
-    exit;
+    jsonResponse(['success' => false, 'error' => 'Username and password are required'], 400);
 }
 
-$stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
-$stmt->execute([$username]);
-$user = $stmt->fetch();
+$user = null;
+foreach (readJsonData('users.json') as $candidate) {
+    if (($candidate['username'] ?? '') === $username) {
+        $user = $candidate;
+        break;
+    }
+}
 
-if (!$user || !password_verify($password, $user['password_hash'])) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'error' => 'Invalid username or password']);
-    exit;
+if (!$user || !password_verify($password, $user['password_hash'] ?? '')) {
+    jsonResponse(['success' => false, 'error' => 'Invalid username or password'], 401);
 }
 
 $_SESSION['user_id'] = (int)$user['id'];
@@ -34,12 +30,13 @@ $_SESSION['username'] = $user['username'];
 $_SESSION['display_name'] = $user['display_name'];
 $_SESSION['role'] = $user['role'];
 
-echo json_encode([
+jsonResponse([
     'success' => true,
     'user' => [
         'id' => (int)$user['id'],
         'username' => $user['username'],
         'display_name' => $user['display_name'],
         'role' => $user['role'],
-    ]
+    ],
 ]);
+

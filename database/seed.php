@@ -1,64 +1,9 @@
-Run this file once from the command line to populate sample users and polls.
-Do not expose this file publicly in production.
-
 <?php
+require_once __DIR__ . '/../php/json_store.php';
 
-$host = getenv('DB_HOST') ?: 'localhost';
-$port = getenv('DB_PORT') ?: '3306';
-$dbname = getenv('DB_NAME') ?: 'poll_system';
-$username = getenv('DB_USER') ?: 'root';
-$password = getenv('DB_PASSWORD') ?: '';
-$sslCa = getenv('DB_SSL_CA') ?: '';
+writeJsonData('users.json', jsonDataDefaults('users.json'));
+writeJsonData('polls.json', jsonDataDefaults('polls.json'));
+writeJsonData('votes.json', []);
 
-try {
-    $options = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION];
+echo "JSON demo data initialized.\n";
 
-    if ($sslCa !== '') {
-        $options[PDO::MYSQL_ATTR_SSL_CA] = $sslCa;
-        $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = true;
-    }
-
-    $pdo = new PDO("mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4", $username, $password, $options);
-} catch (PDOException $e) {
-    die("Database connection failed: " . $e->getMessage() . "\n");
-}
-
-echo "Seeding database...\n";
-
-$stmt = $pdo->prepare("INSERT INTO users (username, password_hash, display_name, role) VALUES (?, ?, ?, ?)");
-
-$users = [
-    ['admin',   password_hash('admin123',   PASSWORD_BCRYPT), 'Administrator', 'admin'],
-    ['alice',   password_hash('password123', PASSWORD_BCRYPT), 'Alice Johnson',  'user'],
-    ['bob',     password_hash('password123', PASSWORD_BCRYPT), 'Bob Smith',     'user'],
-    ['charlie', password_hash('password123', PASSWORD_BCRYPT), 'Charlie Brown', 'user'],
-];
-
-foreach ($users as $user) {
-    $stmt->execute($user);
-    echo "  Created user: {$user[0]}\n";
-}
-
-$polls = [
-    ['What is your favorite programming language?', ['JavaScript', 'Python', 'Java', 'C++', 'Go', 'Rust']],
-    ['Which frontend framework do you prefer?',     ['React', 'Vue.js', 'Angular', 'Svelte']],
-    ['What is your preferred code editor?',         ['VS Code', 'IntelliJ IDEA', 'Sublime Text', 'Vim / Neovim']],
-];
-
-$pollStmt = $pdo->prepare("INSERT INTO polls (question) VALUES (?)");
-$optStmt  = $pdo->prepare("INSERT INTO poll_options (poll_id, option_text) VALUES (?, ?)");
-
-foreach ($polls as $poll) {
-    $pollStmt->execute([$poll[0]]);
-    $pollId = $pdo->lastInsertId();
-    foreach ($poll[1] as $option) {
-        $optStmt->execute([$pollId, $option]);
-    }
-    echo "  Created poll: {$poll[0]}\n";
-}
-
-echo "\nDone! Sample users:\n";
-echo "  admin   / admin123   (admin)\n";
-echo "  alice   / password123 (user)\n";
-echo "  bob     / password123 (user)\n";
-echo "  charlie / password123 (user)\n";

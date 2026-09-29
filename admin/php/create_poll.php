@@ -2,41 +2,41 @@
 require_once '../../php/config.php';
 requireAdmin();
 
-header('Content-Type: application/json');
-
 $data = json_decode(file_get_contents('php://input'), true);
 $question = trim($data['question'] ?? '');
-$options = $data['options'] ?? [];
+$options = array_values(array_filter(array_map('trim', $data['options'] ?? [])));
 
 if (!$question) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Poll question is required']);
-    exit;
+    jsonResponse(['success' => false, 'error' => 'Poll question is required'], 400);
+}
+if (count($options) < 2) {
+    jsonResponse(['success' => false, 'error' => 'At least 2 options are required'], 400);
 }
 
-if (count($options) < 2) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'At least 2 options are required']);
-    exit;
+$polls = readJsonData('polls.json');
+$pollId = nextJsonId($polls);
+$optionId = 1;
+foreach ($polls as $poll) {
+    foreach (($poll['options'] ?? []) as $option) {
+        $optionId = max($optionId, (int)($option['id'] ?? 0) + 1);
+    }
 }
+
+$newOptions = [];
+foreach ($options as $option) {
+    $newOptions[] = ['id' => $optionId++, 'option_text' => $option, 'vote_count' => 0];
+}
+$polls[] = [
+    'id' => $pollId,
+    'question' => $question,
+    'created_at' => date('c'),
+    'options' => $newOptions,
+];
 
 try {
-    $pdo->beginTransaction();
-
-    $stmt = $pdo->prepare("INSERT INTO polls (question) VALUES (?)");
-    $stmt->execute([$question]);
-    $pollId = $pdo->lastInsertId();
-
-    $optStmt = $pdo->prepare("INSERT INTO poll_options (poll_id, option_text) VALUES (?, ?)");
-    foreach ($options as $option) {
-        $optStmt->execute([$pollId, trim($option)]);
-    }
-
-    $pdo->commit();
-
-    echo json_encode(['success' => true, 'poll_id' => (int)$pollId]);
-} catch (Exception $e) {
-    $pdo->rollBack();
-    http_response_code(500);
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    writeJsonData('polls.json', $polls);
+    jsonResponse(['success' => true, 'poll_id' => $pollId]);
+} catch (Throwable $e) {
+    jsonResponse(['success' => false, 'error' => 'Unable to create poll'], 500);
 }
+
